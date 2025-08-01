@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Slyce - Edge Detection Alpha</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #ffffff;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-size: 2.5em;
+            margin: 0;
+            text-shadow: 0 0 20px rgba(255, 107, 107, 0.3);
+        }
+
+        .controls {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 10px;
+        }
+
+        .slider-container label {
+            font-weight: bold;
+            min-width: 120px;
+        }
+
+        .slider {
+            flex: 1;
+            height: 6px;
+            background: linear-gradient(90deg, #333, #666);
+            border-radius: 3px;
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(255, 107, 107, 0.5);
+        }
+
+        .slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 0 10px rgba(255, 107, 107, 0.5);
+        }
+
+        .value-display {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            min-width: 60px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .image-container {
+            position: relative;
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            align-self: center;
+        }
+
+        .source-image {
+            display: block;
+            max-width: 100%;
+            height: auto;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .margin-overlay {
+            position: absolute;
+            box-shadow: 0 0 20px 5px rgba(255, 107, 107, 0.6);
+            pointer-events: none;
+            transition: all 0.2s ease;
+        }
+
+        .status {
+            text-align: center;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+
+        .loading {
+            color: #4ecdc4;
+        }
+
+        .error {
+            color: #ff6b6b;
+        }
+
+        .info-panel {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            margin-top: 20px;
+        }
+
+        .info-panel h3 {
+            margin-top: 0;
+            color: #4ecdc4;
+        }
+
+        .margin-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .margin-stat {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .margin-stat .label {
+            font-size: 0.8em;
+            color: #aaa;
+        }
+
+        .margin-stat .value {
+            font-weight: bold;
+            font-size: 1.1em;
+            color: #fff;
+        }
+
+        .load-image-btn {
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            border: none;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 25px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+            margin-bottom: 15px;
+        }
+
+        .load-image-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
+        }
+
+        .load-image-btn:active {
+            transform: translateY(0);
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .drop-zone {
+            transition: all 0.3s ease;
+        }
+
+        .drop-zone.drag-over {
+            background: rgba(78, 205, 196, 0.1);
+            border: 2px dashed #4ecdc4;
+            border-radius: 15px;
+        }
+
+        .drop-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(78, 205, 196, 0.1);
+            backdrop-filter: blur(5px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            border: 3px dashed #4ecdc4;
+        }
+
+        .drop-overlay.show {
+            display: flex;
+        }
+
+        .drop-message {
+            background: rgba(0, 0, 0, 0.8);
+            color: #4ecdc4;
+            padding: 30px;
+            border-radius: 15px;
+            font-size: 1.5em;
+            font-weight: bold;
+            text-align: center;
+            border: 2px solid #4ecdc4;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>SLYCE</h1>
+            <p>Edge Detection & Margin Analysis - Alpha Version</p>
+        </div>
+
+        <div class="controls">
+            <button class="load-image-btn" id="loadImageBtn">Load Image</button>
+            <input type="file" class="file-input" id="fileInput" accept="image/*">
+            
+            <div class="slider-container">
+                <label for="limitSlider">Edge Limit:</label>
+                <input type="range" id="limitSlider" class="slider" min="0" max="255" value="30">
+                <div class="value-display" id="limitValue">30</div>
+            </div>
+        </div>
+
+        <div class="image-container drop-zone" id="imageContainer">
+            <img id="sourceImage" class="source-image" src="slyce.jpg" alt="Source Image">
+            <div id="marginOverlay" class="margin-overlay" style="display: none;"></div>
+        </div>
+
+        <div class="drop-overlay" id="dropOverlay">
+            <div class="drop-message">
+                Drop your image here
+            </div>
+        </div>
+
+        <div class="status" id="status">Loading...</div>
+
+        <div class="info-panel">
+            <h3>Margin Information</h3>
+            <div class="margin-info" id="marginInfo">
+                <div class="margin-stat">
+                    <div class="label">Left</div>
+                    <div class="value" id="leftMargin">-</div>
+                </div>
+                <div class="margin-stat">
+                    <div class="label">Top</div>
+                    <div class="value" id="topMargin">-</div>
+                </div>
+                <div class="margin-stat">
+                    <div class="label">Right</div>
+                    <div class="value" id="rightMargin">-</div>
+                </div>
+                <div class="margin-stat">
+                    <div class="label">Bottom</div>
+                    <div class="value" id="bottomMargin">-</div>
+                </div>
+                <div class="margin-stat">
+                    <div class="label">Width</div>
+                    <div class="value" id="marginWidth">-</div>
+                </div>
+                <div class="margin-stat">
+                    <div class="label">Height</div>
+                    <div class="value" id="marginHeight">-</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { EdgeFinder } from './EdgeFinder.js';
+        import { findMargins } from './algorithm.js';
+        import { Rectangle } from './util.js';
+
+        class SlyceApp {
+            constructor() {
+                this.edgeFinder = null;
+                this.sourceImage = document.getElementById('sourceImage');
+                this.limitSlider = document.getElementById('limitSlider');
+                this.limitValue = document.getElementById('limitValue');
+                this.marginOverlay = document.getElementById('marginOverlay');
+                this.imageContainer = document.getElementById('imageContainer');
+                this.status = document.getElementById('status');
+                this.loadImageBtn = document.getElementById('loadImageBtn');
+                this.fileInput = document.getElementById('fileInput');
+                this.dropOverlay = document.getElementById('dropOverlay');
+                
+                this.dragCounter = 0; // Track drag enter/leave for nested elements
+                
+                this.initializeEventListeners();
+                this.loadAndProcessImage();
+            }
+
+            initializeEventListeners() {
+                this.limitSlider.addEventListener('input', () => {
+                    this.limitValue.textContent = this.limitSlider.value;
+                    this.updateMargins();
+                });
+
+                this.sourceImage.addEventListener('load', () => {
+                    if (this.edgeFinder) {
+                        this.processImageWithEdgeFinder();
+                    }
+                });
+
+                this.sourceImage.addEventListener('error', () => {
+                    this.updateStatus('Error: Could not load image', 'error');
+                });
+
+                // File input handling
+                this.loadImageBtn.addEventListener('click', () => {
+                    this.fileInput.click();
+                });
+
+                this.fileInput.addEventListener('change', (e) => {
+                    const file = e.target.files[0];
+                    if (file && file.type.startsWith('image/')) {
+                        this.loadImageFromFile(file);
+                    }
+                });
+
+                // Drag and drop handling
+                document.addEventListener('dragenter', (e) => {
+                    e.preventDefault();
+                    this.dragCounter++;
+                    if (this.hasImageFile(e.dataTransfer)) {
+                        this.dropOverlay.classList.add('show');
+                    }
+                });
+
+                document.addEventListener('dragleave', (e) => {
+                    e.preventDefault();
+                    this.dragCounter--;
+                    if (this.dragCounter === 0) {
+                        this.dropOverlay.classList.remove('show');
+                    }
+                });
+
+                document.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                });
+
+                document.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    this.dragCounter = 0;
+                    this.dropOverlay.classList.remove('show');
+                    
+                    const files = Array.from(e.dataTransfer.files);
+                    const imageFile = files.find(file => file.type.startsWith('image/'));
+                    
+                    if (imageFile) {
+                        this.loadImageFromFile(imageFile);
+                    }
+                });
+
+                // Paste handling
+                document.addEventListener('paste', (e) => {
+                    const items = Array.from(e.clipboardData.items);
+                    const imageItem = items.find(item => item.type.startsWith('image/'));
+                    
+                    if (imageItem) {
+                        e.preventDefault();
+                        const file = imageItem.getAsFile();
+                        this.loadImageFromFile(file);
+                    }
+                });
+
+                // Focus handling for paste (make sure document can receive paste events)
+                document.addEventListener('click', () => {
+                    document.body.focus();
+                });
+
+                // Make body focusable for paste events
+                document.body.setAttribute('tabindex', '-1');
+            }
+
+            hasImageFile(dataTransfer) {
+                if (!dataTransfer || !dataTransfer.types) return false;
+                return Array.from(dataTransfer.types).some(type => 
+                    type === 'Files' && dataTransfer.files && 
+                    Array.from(dataTransfer.files).some(file => file.type.startsWith('image/'))
+                );
+            }
+
+            async loadImageFromFile(file) {
+                try {
+                    this.updateStatus('Loading new image...', 'loading');
+                    
+                    const url = URL.createObjectURL(file);
+                    this.sourceImage.src = url;
+                    
+                    // Clean up the object URL after the image loads
+                    this.sourceImage.onload = () => {
+                        URL.revokeObjectURL(url);
+                        if (this.edgeFinder) {
+                            this.processImageWithEdgeFinder();
+                        }
+                    };
+                    
+                } catch (error) {
+                    this.updateStatus(`Error loading image: ${error.message}`, 'error');
+                    console.error('Error in loadImageFromFile:', error);
+                }
+            }
+
+            async loadAndProcessImage() {
+                try {
+                    this.updateStatus('Loading image...', 'loading');
+                    
+                    // Wait for image to load if it hasn't already
+                    if (!this.sourceImage.complete) {
+                        await new Promise((resolve, reject) => {
+                            this.sourceImage.onload = resolve;
+                            this.sourceImage.onerror = reject;
+                        });
+                    }
+
+                    await this.processImageWithEdgeFinder();
+                } catch (error) {
+                    this.updateStatus(`Error: ${error.message}`, 'error');
+                    console.error('Error in loadAndProcessImage:', error);
+                }
+            }
+
+            async processImageWithEdgeFinder() {
+                try {
+                    this.updateStatus('Processing edges...', 'loading');
+
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    
+                    // Set canvas size to match image
+                    canvas.width = this.sourceImage.naturalWidth;
+                    canvas.height = this.sourceImage.naturalHeight;
+                    
+                    // Draw image to canvas
+                    ctx.drawImage(this.sourceImage, 0, 0);
+                    
+                    // Create ImageBitmap from canvas
+                    const imageBitmap = await createImageBitmap(canvas);
+                    
+                    // Create EdgeFinder
+                    if (this.edgeFinder) {
+                        this.edgeFinder.dispose();
+                    }
+                    
+                    this.edgeFinder = new EdgeFinder(canvas.width, canvas.height, { useOffscreen: false });
+                    
+                    // Process the image
+                    this.edgeFinder.processImage(imageBitmap);
+                    
+                    // Clean up
+                    imageBitmap.close();
+                    
+                    this.updateStatus('Ready - adjust slider to see margins', '');
+                    this.updateMargins();
+                    
+                } catch (error) {
+                    this.updateStatus(`Processing error: ${error.message}`, 'error');
+                    console.error('Error in processImageWithEdgeFinder:', error);
+                }
+            }
+
+            updateMargins() {
+                if (!this.edgeFinder) return;
+
+                try {
+                    const limit = parseInt(this.limitSlider.value);
+                    const edgeMaxValues = this.edgeFinder.getEdgeMaxValues();
+                    const margins = findMargins(edgeMaxValues, limit);
+
+                    this.updateMarginOverlay(margins);
+                    this.updateMarginInfo(margins);
+                } catch (error) {
+                    console.error('Error updating margins:', error);
+                    this.updateStatus(`Margin calculation error: ${error.message}`, 'error');
+                }
+            }
+
+            updateMarginOverlay(margins) {
+                if (margins.isEmpty()) {
+                    this.marginOverlay.style.display = 'none';
+                    return;
+                }
+
+                // Get the displayed image dimensions and position
+                const imageRect = this.sourceImage.getBoundingClientRect();
+                const containerRect = this.imageContainer.getBoundingClientRect();
+                
+                // Calculate scale factors
+                const scaleX = this.sourceImage.offsetWidth / this.sourceImage.naturalWidth;
+                const scaleY = this.sourceImage.offsetHeight / this.sourceImage.naturalHeight;
+                
+                // Calculate overlay position and size
+                const left = margins.left * scaleX;
+                const top = margins.top * scaleY;
+                const width = margins.getWidth() * scaleX;
+                const height = margins.getHeight() * scaleY;
+                
+                // Position overlay relative to image container
+                const imageOffsetX = this.sourceImage.offsetLeft;
+                const imageOffsetY = this.sourceImage.offsetTop;
+                
+                this.marginOverlay.style.display = 'block';
+                this.marginOverlay.style.left = (imageOffsetX + left) + 'px';
+                this.marginOverlay.style.top = (imageOffsetY + top) + 'px';
+                this.marginOverlay.style.width = width + 'px';
+                this.marginOverlay.style.height = height + 'px';
+            }
+
+            updateMarginInfo(margins) {
+                document.getElementById('leftMargin').textContent = margins.left;
+                document.getElementById('topMargin').textContent = margins.top;
+                document.getElementById('rightMargin').textContent = margins.right;
+                document.getElementById('bottomMargin').textContent = margins.bottom;
+                document.getElementById('marginWidth').textContent = margins.getWidth();
+                document.getElementById('marginHeight').textContent = margins.getHeight();
+            }
+
+            updateStatus(message, className = '') {
+                this.status.textContent = message;
+                this.status.className = `status ${className}`;
+            }
+        }
+
+        // Initialize the app when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new SlyceApp();
+        });
+    </script>
+</body>
+</html>
