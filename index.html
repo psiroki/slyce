@@ -11,7 +11,7 @@
             margin: 0 auto;
             padding: 20px;
             background: #1a1a1a;
-            color: #ffffff;
+            color: #fff;
         }
 
         .container {
@@ -23,6 +23,11 @@
         .header {
             text-align: center;
             margin-bottom: 30px;
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 36px;
+            z-index: 2;
         }
 
         .header h1 {
@@ -41,6 +46,8 @@
             border-radius: 15px;
             padding: 20px;
             border: 1px solid rgba(255, 255, 255, 0.2);
+            position: relative;
+            z-index: 1;
         }
 
         .slider-container {
@@ -120,6 +127,14 @@
             pointer-events: none;
             transition: all 0.2s ease;
         }
+        
+        .crop-overlay {
+            position: absolute;
+            border: 2px solid #4ecdc4;
+            box-shadow: 0 0 15px 3px rgba(78, 205, 196, 0.4);
+            pointer-events: none;
+            transition: all 0.2s ease;
+        }
 
         .status {
             text-align: center;
@@ -127,6 +142,9 @@
             background: rgba(0, 0, 0, 0.3);
             border-radius: 10px;
             margin-top: 20px;
+            position: relative;
+            z-index: 1;
+            backdrop-filter: blur(10px);
         }
 
         .loading {
@@ -143,6 +161,9 @@
             padding: 20px;
             border: 1px solid rgba(255, 255, 255, 0.1);
             margin-top: 20px;
+            position: relative;
+            z-index: 1;
+            backdrop-filter: blur(10px);
         }
 
         .info-panel h3 {
@@ -198,6 +219,17 @@
             transform: translateY(0);
         }
 
+        .load-image-btn:disabled {
+            background: #666;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .load-image-btn:disabled:hover {
+            transform: none;
+            box-shadow: none;
+        }
+
         .file-input {
             display: none;
         }
@@ -241,13 +273,111 @@
             text-align: center;
             border: 2px solid #4ecdc4;
         }
+
+        .crop-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            z-index: 1001;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .crop-dialog {
+            background: #1a1a1a;
+            border-radius: 15px;
+            padding: 20px;
+            max-width: 90vw;
+            max-height: 90vh;
+            margin: auto;
+            position: relative;
+            overflow: auto;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #fff;
+        }
+
+        .crop-preview {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .crop-preview canvas {
+            max-width: 100%;
+            max-height: 60vh;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .format-options {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-bottom: 15px;
+        }
+
+        .format-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+
+        .format-option input[type="radio"] {
+            accent-color: #4ecdc4;
+        }
+
+        .quality-control {
+            margin-bottom: 20px;
+        }
+
+        .quality-control.hidden {
+            display: none;
+        }
+
+        .dialog-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        .dialog-btn {
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .dialog-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
+        }
+
+        .dialog-btn:active {
+            transform: translateY(0);
+        }
+
+        .dialog-btn.secondary {
+            background: #777;
+        }
+
+        .dialog-btn.secondary:hover {
+            background: #888;
+            box-shadow: 0 6px 20px rgba(102, 102, 102, 0.4);
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
             <h1>SLYCE</h1>
-            <p>Edge Detection & Margin Analysis - Alpha Version</p>
         </div>
 
         <div class="controls">
@@ -259,11 +389,20 @@
                 <input type="range" id="limitSlider" class="slider" min="0" max="255" value="30">
                 <div class="value-display" id="limitValue">30</div>
             </div>
+            
+            <div class="slider-container">
+                <label for="marginSlider">Margin Size:</label>
+                <input type="range" id="marginSlider" class="slider" min="0" max="200" value="20">
+                <div class="value-display" id="marginValue">20px</div>
+            </div>
+            
+            <button class="load-image-btn" id="cropBtn" disabled>Crop Image</button>
         </div>
 
         <div class="image-container drop-zone" id="imageContainer">
             <img id="sourceImage" class="source-image" src="slyce.jpg" alt="Source Image">
             <div id="marginOverlay" class="margin-overlay" style="display: none;"></div>
+            <div id="cropOverlay" class="crop-overlay" style="display: none;"></div>
         </div>
 
         <div class="drop-overlay" id="dropOverlay">
@@ -304,6 +443,41 @@
             </div>
         </div>
     </div>
+
+    <!-- Crop Modal Dialog -->
+    <dialog class="crop-modal" id="cropModal">
+        <div class="crop-dialog">
+            <h2 style="text-align: center; margin-top: 0; color: #4ecdc4;">Cropped Image Preview</h2>
+            
+            <div class="crop-preview">
+                <canvas id="cropCanvas"></canvas>
+            </div>
+            
+            <div class="format-options">
+                <label class="format-option">
+                    <input type="radio" name="format" value="png" checked>
+                    <span>PNG (Lossless)</span>
+                </label>
+                <label class="format-option">
+                    <input type="radio" name="format" value="jpeg">
+                    <span>JPEG (Compressed)</span>
+                </label>
+            </div>
+            
+            <div class="quality-control hidden" id="qualityControl">
+                <div class="slider-container">
+                    <label for="qualitySlider">JPEG Quality:</label>
+                    <input type="range" id="qualitySlider" class="slider" min="1" max="100" value="85">
+                    <div class="value-display" id="qualityValue">85%</div>
+                </div>
+            </div>
+            
+            <div class="dialog-buttons">
+                <button class="dialog-btn secondary" id="cancelCropBtn">Cancel</button>
+                <button class="dialog-btn" id="downloadBtn">Download</button>
+            </div>
+        </div>
+    </dialog>
 
     <script type="module" src="ui.js"></script>
 </body>
