@@ -11,7 +11,7 @@
             margin: 0 auto;
             padding: 20px;
             background: #1a1a1a;
-            color: #ffffff;
+            color: #fff;
         }
 
         .container {
@@ -23,6 +23,11 @@
         .header {
             text-align: center;
             margin-bottom: 30px;
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 36px;
+            z-index: 2;
         }
 
         .header h1 {
@@ -41,6 +46,8 @@
             border-radius: 15px;
             padding: 20px;
             border: 1px solid rgba(255, 255, 255, 0.2);
+            position: relative;
+            z-index: 1;
         }
 
         .slider-container {
@@ -120,6 +127,14 @@
             pointer-events: none;
             transition: all 0.2s ease;
         }
+        
+        .crop-overlay {
+            position: absolute;
+            border: 2px solid #4ecdc4;
+            box-shadow: 0 0 15px 3px rgba(78, 205, 196, 0.4);
+            pointer-events: none;
+            transition: all 0.2s ease;
+        }
 
         .status {
             text-align: center;
@@ -127,6 +142,9 @@
             background: rgba(0, 0, 0, 0.3);
             border-radius: 10px;
             margin-top: 20px;
+            position: relative;
+            z-index: 1;
+            backdrop-filter: blur(10px);
         }
 
         .loading {
@@ -143,6 +161,9 @@
             padding: 20px;
             border: 1px solid rgba(255, 255, 255, 0.1);
             margin-top: 20px;
+            position: relative;
+            z-index: 1;
+            backdrop-filter: blur(10px);
         }
 
         .info-panel h3 {
@@ -198,6 +219,17 @@
             transform: translateY(0);
         }
 
+        .load-image-btn:disabled {
+            background: #666;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .load-image-btn:disabled:hover {
+            transform: none;
+            box-shadow: none;
+        }
+
         .file-input {
             display: none;
         }
@@ -241,13 +273,111 @@
             text-align: center;
             border: 2px solid #4ecdc4;
         }
+
+        .crop-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            z-index: 1001;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .crop-dialog {
+            background: #1a1a1a;
+            border-radius: 15px;
+            padding: 20px;
+            max-width: 90vw;
+            max-height: 90vh;
+            margin: auto;
+            position: relative;
+            overflow: auto;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #fff;
+        }
+
+        .crop-preview {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .crop-preview canvas {
+            max-width: 100%;
+            max-height: 60vh;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .format-options {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-bottom: 15px;
+        }
+
+        .format-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+
+        .format-option input[type="radio"] {
+            accent-color: #4ecdc4;
+        }
+
+        .quality-control {
+            margin-bottom: 20px;
+        }
+
+        .quality-control.hidden {
+            display: none;
+        }
+
+        .dialog-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        .dialog-btn {
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .dialog-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
+        }
+
+        .dialog-btn:active {
+            transform: translateY(0);
+        }
+
+        .dialog-btn.secondary {
+            background: #777;
+        }
+
+        .dialog-btn.secondary:hover {
+            background: #888;
+            box-shadow: 0 6px 20px rgba(102, 102, 102, 0.4);
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
             <h1>SLYCE</h1>
-            <p>Edge Detection & Margin Analysis - Alpha Version</p>
         </div>
 
         <div class="controls">
@@ -259,11 +389,20 @@
                 <input type="range" id="limitSlider" class="slider" min="0" max="255" value="30">
                 <div class="value-display" id="limitValue">30</div>
             </div>
+            
+            <div class="slider-container">
+                <label for="marginSlider">Margin Size:</label>
+                <input type="range" id="marginSlider" class="slider" min="0" max="200" value="20">
+                <div class="value-display" id="marginValue">20px</div>
+            </div>
+            
+            <button class="load-image-btn" id="cropBtn" disabled>Crop Image</button>
         </div>
 
         <div class="image-container drop-zone" id="imageContainer">
             <img id="sourceImage" class="source-image" src="slyce.jpg" alt="Source Image">
             <div id="marginOverlay" class="margin-overlay" style="display: none;"></div>
+            <div id="cropOverlay" class="crop-overlay" style="display: none;"></div>
         </div>
 
         <div class="drop-overlay" id="dropOverlay">
@@ -305,266 +444,41 @@
         </div>
     </div>
 
-    <script type="module">
-        import { EdgeFinder } from './EdgeFinder.js';
-        import { findMargins } from './algorithm.js';
-        import { Rectangle } from './util.js';
+    <!-- Crop Modal Dialog -->
+    <dialog class="crop-modal" id="cropModal">
+        <div class="crop-dialog">
+            <h2 style="text-align: center; margin-top: 0; color: #4ecdc4;">Cropped Image Preview</h2>
+            
+            <div class="crop-preview">
+                <canvas id="cropCanvas"></canvas>
+            </div>
+            
+            <div class="format-options">
+                <label class="format-option">
+                    <input type="radio" name="format" value="png" checked>
+                    <span>PNG (Lossless)</span>
+                </label>
+                <label class="format-option">
+                    <input type="radio" name="format" value="jpeg">
+                    <span>JPEG (Compressed)</span>
+                </label>
+            </div>
+            
+            <div class="quality-control hidden" id="qualityControl">
+                <div class="slider-container">
+                    <label for="qualitySlider">JPEG Quality:</label>
+                    <input type="range" id="qualitySlider" class="slider" min="1" max="100" value="85">
+                    <div class="value-display" id="qualityValue">85%</div>
+                </div>
+            </div>
+            
+            <div class="dialog-buttons">
+                <button class="dialog-btn secondary" id="cancelCropBtn">Cancel</button>
+                <button class="dialog-btn" id="downloadBtn">Download</button>
+            </div>
+        </div>
+    </dialog>
 
-        class SlyceApp {
-            constructor() {
-                this.edgeFinder = null;
-                this.sourceImage = document.getElementById('sourceImage');
-                this.limitSlider = document.getElementById('limitSlider');
-                this.limitValue = document.getElementById('limitValue');
-                this.marginOverlay = document.getElementById('marginOverlay');
-                this.imageContainer = document.getElementById('imageContainer');
-                this.status = document.getElementById('status');
-                this.loadImageBtn = document.getElementById('loadImageBtn');
-                this.fileInput = document.getElementById('fileInput');
-                this.dropOverlay = document.getElementById('dropOverlay');
-                
-                this.dragCounter = 0; // Track drag enter/leave for nested elements
-                
-                this.initializeEventListeners();
-                this.loadAndProcessImage();
-            }
-
-            initializeEventListeners() {
-                this.limitSlider.addEventListener('input', () => {
-                    this.limitValue.textContent = this.limitSlider.value;
-                    this.updateMargins();
-                });
-
-                this.sourceImage.addEventListener('load', () => {
-                    if (this.edgeFinder) {
-                        this.processImageWithEdgeFinder();
-                    }
-                });
-
-                this.sourceImage.addEventListener('error', () => {
-                    this.updateStatus('Error: Could not load image', 'error');
-                });
-
-                // File input handling
-                this.loadImageBtn.addEventListener('click', () => {
-                    this.fileInput.click();
-                });
-
-                this.fileInput.addEventListener('change', (e) => {
-                    const file = e.target.files[0];
-                    if (file && file.type.startsWith('image/')) {
-                        this.loadImageFromFile(file);
-                    }
-                });
-
-                // Drag and drop handling
-                document.addEventListener('dragenter', (e) => {
-                    e.preventDefault();
-                    this.dragCounter++;
-                    if (this.hasImageFile(e.dataTransfer)) {
-                        this.dropOverlay.classList.add('show');
-                    }
-                });
-
-                document.addEventListener('dragleave', (e) => {
-                    e.preventDefault();
-                    this.dragCounter--;
-                    if (this.dragCounter === 0) {
-                        this.dropOverlay.classList.remove('show');
-                    }
-                });
-
-                document.addEventListener('dragover', (e) => {
-                    e.preventDefault();
-                });
-
-                document.addEventListener('drop', (e) => {
-                    e.preventDefault();
-                    this.dragCounter = 0;
-                    this.dropOverlay.classList.remove('show');
-                    
-                    const files = Array.from(e.dataTransfer.files);
-                    const imageFile = files.find(file => file.type.startsWith('image/'));
-                    
-                    if (imageFile) {
-                        this.loadImageFromFile(imageFile);
-                    }
-                });
-
-                // Paste handling
-                document.addEventListener('paste', (e) => {
-                    const items = Array.from(e.clipboardData.items);
-                    const imageItem = items.find(item => item.type.startsWith('image/'));
-                    
-                    if (imageItem) {
-                        e.preventDefault();
-                        const file = imageItem.getAsFile();
-                        this.loadImageFromFile(file);
-                    }
-                });
-
-                // Focus handling for paste (make sure document can receive paste events)
-                document.addEventListener('click', () => {
-                    document.body.focus();
-                });
-
-                // Make body focusable for paste events
-                document.body.setAttribute('tabindex', '-1');
-            }
-
-            hasImageFile(dataTransfer) {
-                if (!dataTransfer || !dataTransfer.types) return false;
-                return Array.from(dataTransfer.types).some(type => 
-                    type === 'Files' && dataTransfer.files && 
-                    Array.from(dataTransfer.files).some(file => file.type.startsWith('image/'))
-                );
-            }
-
-            async loadImageFromFile(file) {
-                try {
-                    this.updateStatus('Loading new image...', 'loading');
-                    
-                    const url = URL.createObjectURL(file);
-                    this.sourceImage.src = url;
-                    
-                    // Clean up the object URL after the image loads
-                    this.sourceImage.onload = () => {
-                        URL.revokeObjectURL(url);
-                        if (this.edgeFinder) {
-                            this.processImageWithEdgeFinder();
-                        }
-                    };
-                    
-                } catch (error) {
-                    this.updateStatus(`Error loading image: ${error.message}`, 'error');
-                    console.error('Error in loadImageFromFile:', error);
-                }
-            }
-
-            async loadAndProcessImage() {
-                try {
-                    this.updateStatus('Loading image...', 'loading');
-                    
-                    // Wait for image to load if it hasn't already
-                    if (!this.sourceImage.complete) {
-                        await new Promise((resolve, reject) => {
-                            this.sourceImage.onload = resolve;
-                            this.sourceImage.onerror = reject;
-                        });
-                    }
-
-                    await this.processImageWithEdgeFinder();
-                } catch (error) {
-                    this.updateStatus(`Error: ${error.message}`, 'error');
-                    console.error('Error in loadAndProcessImage:', error);
-                }
-            }
-
-            async processImageWithEdgeFinder() {
-                try {
-                    this.updateStatus('Processing edges...', 'loading');
-
-                    const canvas = document.createElement('canvas');
-                    const ctx = canvas.getContext('2d');
-                    
-                    // Set canvas size to match image
-                    canvas.width = this.sourceImage.naturalWidth;
-                    canvas.height = this.sourceImage.naturalHeight;
-                    
-                    // Draw image to canvas
-                    ctx.drawImage(this.sourceImage, 0, 0);
-                    
-                    // Create ImageBitmap from canvas
-                    const imageBitmap = await createImageBitmap(canvas);
-                    
-                    // Create EdgeFinder
-                    if (this.edgeFinder) {
-                        this.edgeFinder.dispose();
-                    }
-                    
-                    this.edgeFinder = new EdgeFinder(canvas.width, canvas.height, { useOffscreen: false });
-                    
-                    // Process the image
-                    this.edgeFinder.processImage(imageBitmap);
-                    
-                    // Clean up
-                    imageBitmap.close();
-                    
-                    this.updateStatus('Ready - adjust slider to see margins', '');
-                    this.updateMargins();
-                    
-                } catch (error) {
-                    this.updateStatus(`Processing error: ${error.message}`, 'error');
-                    console.error('Error in processImageWithEdgeFinder:', error);
-                }
-            }
-
-            updateMargins() {
-                if (!this.edgeFinder) return;
-
-                try {
-                    const limit = parseInt(this.limitSlider.value);
-                    const edgeMaxValues = this.edgeFinder.getEdgeMaxValues();
-                    const margins = findMargins(edgeMaxValues, limit);
-
-                    this.updateMarginOverlay(margins);
-                    this.updateMarginInfo(margins);
-                } catch (error) {
-                    console.error('Error updating margins:', error);
-                    this.updateStatus(`Margin calculation error: ${error.message}`, 'error');
-                }
-            }
-
-            updateMarginOverlay(margins) {
-                if (margins.isEmpty()) {
-                    this.marginOverlay.style.display = 'none';
-                    return;
-                }
-
-                // Get the displayed image dimensions and position
-                const imageRect = this.sourceImage.getBoundingClientRect();
-                const containerRect = this.imageContainer.getBoundingClientRect();
-                
-                // Calculate scale factors
-                const scaleX = this.sourceImage.offsetWidth / this.sourceImage.naturalWidth;
-                const scaleY = this.sourceImage.offsetHeight / this.sourceImage.naturalHeight;
-                
-                // Calculate overlay position and size
-                const left = margins.left * scaleX;
-                const top = margins.top * scaleY;
-                const width = margins.getWidth() * scaleX;
-                const height = margins.getHeight() * scaleY;
-                
-                // Position overlay relative to image container
-                const imageOffsetX = this.sourceImage.offsetLeft;
-                const imageOffsetY = this.sourceImage.offsetTop;
-                
-                this.marginOverlay.style.display = 'block';
-                this.marginOverlay.style.left = (imageOffsetX + left) + 'px';
-                this.marginOverlay.style.top = (imageOffsetY + top) + 'px';
-                this.marginOverlay.style.width = width + 'px';
-                this.marginOverlay.style.height = height + 'px';
-            }
-
-            updateMarginInfo(margins) {
-                document.getElementById('leftMargin').textContent = margins.left;
-                document.getElementById('topMargin').textContent = margins.top;
-                document.getElementById('rightMargin').textContent = margins.right;
-                document.getElementById('bottomMargin').textContent = margins.bottom;
-                document.getElementById('marginWidth').textContent = margins.getWidth();
-                document.getElementById('marginHeight').textContent = margins.getHeight();
-            }
-
-            updateStatus(message, className = '') {
-                this.status.textContent = message;
-                this.status.className = `status ${className}`;
-            }
-        }
-
-        // Initialize the app when the page loads
-        document.addEventListener('DOMContentLoaded', () => {
-            new SlyceApp();
-        });
-    </script>
+    <script type="module" src="ui.js"></script>
 </body>
 </html>
