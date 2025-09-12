@@ -139,8 +139,8 @@ export function cropExpand(source, cropRect, config = {}) {
     const { useOffscreen = false, paddingColor = null } = config;
     
     // Get source dimensions
-    const sourceWidth = source.width || source.naturalWidth || source.videoWidth;
-    const sourceHeight = source.height || source.naturalHeight || source.videoHeight;
+    const sourceWidth = source.naturalWidth || source.videoWidth || source.width;
+    const sourceHeight = source.naturalHeight || source.videoHeight || source.height;
     
     if (!sourceWidth || !sourceHeight) {
         throw new Error('Could not determine source image dimensions');
