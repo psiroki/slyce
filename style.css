@@ -65,6 +65,8 @@ body {
 
 .scroll-container {
     height: calc(100vh - 178px - 50px);
+    touch-action: none;
+    user-select: none;
 }
 
 .slider-container {
