@@ -55,7 +55,7 @@ body {
     backdrop-filter: blur(10px);
     border-radius: 0 0 15px 15px;
     padding: 20px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    border: 1px solid #8888;
     position: relative;
     z-index: 1;
     box-sizing: border-box;
@@ -184,10 +184,10 @@ body {
 .info-panel {
     transition: transform 0.2s ease;
     pointer-events: none;
-    background: rgba(255, 255, 255, 0.05);
+    background: #3338;
     border-radius: 15px;
     padding: 20px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid #8888;
     margin-top: 20px;
     position: relative;
     z-index: 1;
@@ -399,4 +399,37 @@ body {
 .dialog-btn.secondary:hover {
     background: #888;
     box-shadow: 0 6px 20px rgba(102, 102, 102, 0.4);
+}
+
+@media (max-width: 420px) {
+    .hidable {
+        display: none;
+    }
+    
+    .controls {
+        padding: 12px;
+        height: 140px;
+    }
+
+    .header {
+        top: 9px;
+    }
+    
+    .slider-container {
+        gap: 8px;
+        margin-bottom: 6px;
+    }
+    
+    .value-display {
+        padding: 3px 10px;
+        min-width: 20px;
+    }
+    
+    .load-image-btn {
+        margin-bottom: 10px;
+    }
+
+    .scroll-container {
+        height: calc(100vh - 140px - 50px);
+    }
 }
