@@ -1,6 +1,7 @@
 import { EdgeFinder } from './EdgeFinder.js';
 import { findMargins } from './algorithm.js';
-import { Rectangle, cropExpand } from './util.js';
+import { cropExpand } from './util.js';
+import { ScrollZoom } from './scrollzoom.js';
 
 class SlyceApp {
     constructor() {
@@ -14,6 +15,7 @@ class SlyceApp {
         this.marginOverlay = document.getElementById('marginOverlay');
         this.cropOverlay = document.getElementById('cropOverlay');
         this.imageContainer = document.getElementById('imageContainer');
+        this.scrollContainer = document.getElementById('scrollContainer');
         this.status = document.getElementById('status');
         this.loadImageBtn = document.getElementById('loadImageBtn');
         this.cropBtn = document.getElementById('cropBtn');
@@ -32,7 +34,10 @@ class SlyceApp {
         
         this.dragCounter = 0; // Track drag enter/leave for nested elements
         
+        this.scroller = null;
+
         this.initializeEventListeners();
+        this.resetScroller();
         this.loadAndProcessImage();
     }
 
@@ -43,7 +48,7 @@ class SlyceApp {
         });
 
         this.marginSlider.addEventListener('input', () => {
-            this.marginValue.textContent = this.marginSlider.value + 'px';
+            this.marginValue.textContent = this.marginSlider.value;
             this.updateMargins();
         });
 
@@ -154,6 +159,14 @@ class SlyceApp {
         document.body.setAttribute('tabindex', '-1');
     }
 
+    resetScroller() {
+        if (this.scroller) this.scroller.detach();
+        this.scroller = new ScrollZoom(this.scrollContainer);
+        this.scroller.centerImage();
+        let scale = this.scrollContainer.offsetHeight / this.imageContainer.offsetHeight;
+        this.scroller.scaleAroundCenter(scale);
+    }
+
     hasImageFile(dataTransfer) {
         if (!dataTransfer || !dataTransfer.types) return false;
         return Array.from(dataTransfer.types).some(type => 
@@ -172,6 +185,7 @@ class SlyceApp {
             // Clean up the object URL after the image loads
             this.sourceImage.onload = () => {
                 URL.revokeObjectURL(url);
+                this.resetScroller();
                 if (this.edgeFinder) {
                     this.processImageWithEdgeFinder();
                 }
