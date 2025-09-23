@@ -2,6 +2,7 @@ import { EdgeFinder } from './EdgeFinder.js';
 import { findMargins } from './algorithm.js';
 import { cropExpand } from './util.js';
 import { ScrollZoom } from './scrollzoom.js';
+import { crc32 } from './crc32.js';
 
 class SlyceApp {
     constructor() {
@@ -398,13 +399,14 @@ class SlyceApp {
         return new Promise((resolve, reject) => {
             try {
                 const mimeType = format === 'jpeg' ? 'image/jpeg' : 'image/png';
-                const filename = `slyce-crop.${format}`;
 
-                canvas.toBlob((blob) => {
+                canvas.toBlob(async (blob) => {
                     if (!blob) {
                         reject(new Error('Failed to create image blob'));
                         return;
                     }
+                    const bytes = new Uint8Array(await blob.arrayBuffer());
+                    const filename = `slyce_${crc32(bytes)}.${format}`;
 
                     // Create download link
                     const url = URL.createObjectURL(blob);
