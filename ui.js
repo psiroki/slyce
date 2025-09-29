@@ -37,20 +37,79 @@ class SlyceApp {
         
         this.scroller = null;
 
+        // Load saved settings before initializing event listeners
+        this.loadSettings();
         this.initializeEventListeners();
         this.resetScroller();
         this.loadAndProcessImage();
+    }
+
+    loadSettings() {
+        try {
+            const savedSettings = localStorage.getItem('slyce');
+            if (savedSettings) {
+                const settings = JSON.parse(savedSettings);
+                
+                // Apply threshold setting
+                if (settings.threshold !== undefined) {
+                    this.limitSlider.value = settings.threshold;
+                    this.limitValue.textContent = settings.threshold;
+                }
+                
+                // Apply margin size setting
+                if (settings.marginSize !== undefined) {
+                    this.marginSlider.value = settings.marginSize;
+                    this.marginValue.textContent = settings.marginSize;
+                }
+                
+                // Apply export format setting
+                if (settings.exportFormat !== undefined) {
+                    const formatRadio = document.querySelector(`input[name="format"][value="${settings.exportFormat}"]`);
+                    if (formatRadio) {
+                        formatRadio.checked = true;
+                    }
+                }
+                
+                // Apply JPEG quality setting
+                if (settings.jpegQuality !== undefined) {
+                    this.qualitySlider.value = settings.jpegQuality;
+                    this.qualityValue.textContent = settings.jpegQuality + '%';
+                }
+                
+                // Update format controls visibility based on loaded format
+                this.updateFormatControls();
+            }
+        } catch (error) {
+            console.error('Error loading settings:', error);
+        }
+    }
+
+    saveSettings() {
+        try {
+            const settings = {
+                threshold: parseInt(this.limitSlider.value),
+                marginSize: parseInt(this.marginSlider.value),
+                exportFormat: document.querySelector('input[name="format"]:checked').value,
+                jpegQuality: parseInt(this.qualitySlider.value)
+            };
+            
+            localStorage.setItem('slyce', JSON.stringify(settings));
+        } catch (error) {
+            console.error('Error saving settings:', error);
+        }
     }
 
     initializeEventListeners() {
         this.limitSlider.addEventListener('input', () => {
             this.limitValue.textContent = this.limitSlider.value;
             this.updateMargins();
+            this.saveSettings();
         });
 
         this.marginSlider.addEventListener('input', () => {
             this.marginValue.textContent = this.marginSlider.value;
             this.updateMargins();
+            this.saveSettings();
         });
 
         this.sourceImage.addEventListener('load', () => {
@@ -83,11 +142,13 @@ class SlyceApp {
         this.formatRadios.forEach(radio => {
             radio.addEventListener('change', () => {
                 this.updateFormatControls();
+                this.saveSettings();
             });
         });
 
         this.qualitySlider.addEventListener('input', () => {
             this.qualityValue.textContent = this.qualitySlider.value + '%';
+            this.saveSettings();
         });
 
         this.cancelCropBtn.addEventListener('click', () => {
@@ -359,8 +420,7 @@ class SlyceApp {
             const ctx = this.cropCanvas.getContext('2d');
             ctx.putImageData(imageData, 0, 0);
 
-            // Reset format controls
-            this.formatRadios[0].checked = true; // PNG
+            // Format controls are already set from loaded settings, no need to reset
             this.updateFormatControls();
 
             // Show modal
