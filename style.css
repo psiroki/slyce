@@ -374,6 +374,7 @@ body {
     display: flex;
     gap: 15px;
     justify-content: center;
+    flex-wrap: wrap;
 }
 
 .dialog-btn {
@@ -405,7 +406,7 @@ body {
     box-shadow: 0 6px 20px rgba(102, 102, 102, 0.4);
 }
 
-@media (max-width: 420px) {
+@media (max-width: 600px) {
     .hidable {
         display: none;
     }
@@ -430,6 +431,7 @@ body {
     }
     
     .load-image-btn {
+        padding: 8px 14px;
         margin-bottom: 10px;
     }
 

@@ -42,14 +42,15 @@
             </div>
             <button class="load-image-btn" id="loadImageBtn">Load<span class="hidable"> Image</span></button>
             <input type="file" class="file-input" id="fileInput" accept="image/*">
+            <button class="load-image-btn" id="pasteBtn">Paste<span class="hidable"> Image</span></button>
             <button class="load-image-btn" id="cropBtn" disabled>Crop<span class="hidable"> Image</span></button>
-            
+
             <div class="slider-container">
                 <label for="limitSlider">Threshold:</label>
                 <input type="range" id="limitSlider" class="slider" min="0" max="255" value="30">
                 <div class="value-display" id="limitValue">30</div>
             </div>
-            
+
             <div class="slider-container">
                 <label for="marginSlider">Margin Size:</label>
                 <input type="range" id="marginSlider" class="slider" min="0" max="200" value="20">
@@ -108,11 +109,11 @@
     <dialog class="crop-modal" id="cropModal">
         <div class="crop-dialog">
             <h2 style="text-align: center; margin-top: 0; color: #4ecdc4;">Cropped Image Preview</h2>
-            
+
             <div class="crop-preview">
                 <canvas id="cropCanvas"></canvas>
             </div>
-            
+
             <div class="format-options">
                 <label class="format-option">
                     <input type="radio" name="format" value="png" checked>
@@ -123,7 +124,7 @@
                     <span>JPEG (Compressed)</span>
                 </label>
             </div>
-            
+
             <div class="quality-control hidden" id="qualityControl">
                 <div class="slider-container">
                     <label for="qualitySlider">JPEG Quality:</label>
@@ -131,9 +132,10 @@
                     <div class="value-display" id="qualityValue">85%</div>
                 </div>
             </div>
-            
+
             <div class="dialog-buttons">
                 <button class="dialog-btn secondary" id="cancelCropBtn">Cancel</button>
+                <button class="dialog-btn" id="copyCropBtn">Copy</button>
                 <button class="dialog-btn" id="downloadBtn">Download</button>
             </div>
         </div>

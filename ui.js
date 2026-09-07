@@ -19,6 +19,7 @@ class SlyceApp {
         this.scrollContainer = document.getElementById('scrollContainer');
         this.status = document.getElementById('status');
         this.loadImageBtn = document.getElementById('loadImageBtn');
+        this.pasteBtn = document.getElementById('pasteBtn');
         this.cropBtn = document.getElementById('cropBtn');
         this.fileInput = document.getElementById('fileInput');
         this.dropOverlay = document.getElementById('dropOverlay');
@@ -31,7 +32,12 @@ class SlyceApp {
         this.qualitySlider = document.getElementById('qualitySlider');
         this.qualityValue = document.getElementById('qualityValue');
         this.cancelCropBtn = document.getElementById('cancelCropBtn');
+        this.copyCropBtn = document.getElementById('copyCropBtn');
         this.downloadBtn = document.getElementById('downloadBtn');
+
+        if (!navigator.clipboard || !navigator.clipboard.write) {
+            this.copyCropBtn.style.display = 'none';
+        }
         
         this.dragCounter = 0; // Track drag enter/leave for nested elements
         
@@ -127,6 +133,10 @@ class SlyceApp {
             this.fileInput.click();
         });
 
+        this.pasteBtn.addEventListener('click', () => {
+            this.handlePaste();
+        });
+
         this.cropBtn.addEventListener('click', () => {
             this.showCropDialog();
         });
@@ -153,6 +163,10 @@ class SlyceApp {
 
         this.cancelCropBtn.addEventListener('click', () => {
             this.cropModal.close();
+        });
+
+        this.copyCropBtn.addEventListener('click', () => {
+            this.handleCopy();
         });
 
         this.downloadBtn.addEventListener('click', () => {
@@ -439,6 +453,84 @@ class SlyceApp {
             this.qualityControl.classList.remove('hidden');
         } else {
             this.qualityControl.classList.add('hidden');
+        }
+    }
+
+    async handleCopy() {
+        try {
+            const selectedFormat = document.querySelector('input[name="format"]:checked').value;
+            const quality = selectedFormat === 'jpeg' ? (this.qualitySlider.value / 100) : undefined;
+            const mimeType = selectedFormat === 'jpeg' ? 'image/jpeg' : 'image/png';
+
+            const getBlob = (type, q) => new Promise(resolve => this.cropCanvas.toBlob(resolve, type, q));
+
+            let copied = false;
+            if (mimeType !== 'image/png' && typeof ClipboardItem !== 'undefined' && typeof ClipboardItem.supports === 'function') {
+                try {
+                    if (ClipboardItem.supports(mimeType)) {
+                        const blob = await getBlob(mimeType, quality);
+                        if (blob) {
+                            await navigator.clipboard.write([
+                                new ClipboardItem({ [mimeType]: blob })
+                            ]);
+                            copied = true;
+                        }
+                    }
+                } catch (e) {
+                    console.warn('Writing jpeg to clipboard failed, falling back to PNG:', e);
+                }
+            }
+
+            if (!copied) {
+                const blob = await getBlob('image/png');
+                if (!blob) {
+                    throw new Error('Failed to create image blob');
+                }
+                await navigator.clipboard.write([
+                    new ClipboardItem({ 'image/png': blob })
+                ]);
+            }
+
+            this.cropModal.close();
+            this.updateStatus('Cropped image copied to clipboard!', 'loading');
+            setTimeout(() => {
+                if (this.status.textContent === 'Cropped image copied to clipboard!') {
+                    this.updateStatus('Ready - adjust slider to see margins', '');
+                }
+            }, 2500);
+        } catch (error) {
+            console.error('Copy error:', error);
+            alert('Error copying image: ' + error.message);
+        }
+    }
+
+    async handlePaste() {
+        try {
+            if (!navigator.clipboard || !navigator.clipboard.read) {
+                this.updateStatus('Clipboard read not supported by browser. Try pasting with Ctrl+V / Cmd+V.', 'error');
+                return;
+            }
+
+            this.updateStatus('Reading clipboard...', 'loading');
+            const clipboardItems = await navigator.clipboard.read();
+
+            for (const item of clipboardItems) {
+                const imageType = item.types.find(type => type.startsWith('image/'));
+                if (imageType) {
+                    const blob = await item.getType(imageType);
+                    this.loadImageFromFile(blob);
+                    return;
+                }
+            }
+
+            this.updateStatus('No image found in clipboard', 'error');
+        } catch (error) {
+            console.error('Paste error:', error);
+            if (error.name === 'NotAllowedError') {
+                this.updateStatus('Clipboard permission denied', 'error');
+            } else {
+                this.updateStatus(`Could not paste image: ${error.message}`, 'error');
+            }
         }
     }
 
