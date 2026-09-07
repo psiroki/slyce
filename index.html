@@ -32,6 +32,13 @@
     <meta name="theme-color" content="#4ecdc4">
     <link rel="canonical" href="https://psiroki.github.io/slyce/">
     <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="/slyce/manifest.json">
+    <link rel="apple-touch-icon" href="/slyce/icon-192.png">
+    <script>
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/slyce/sw.js');
+      }
+    </script>
 </head>
 <body>
     <div class="container">
