@@ -15,7 +15,6 @@ const files = [
   "/slyce/scrollzoom.js",
   "/slyce/slyce.jpg",
   "/slyce/style.css",
-  "/slyce/sw.js",
   "/slyce/ui.js",
   "/slyce/util.js"
 ];
@@ -35,6 +34,16 @@ self.addEventListener("install", event => {
     caches.open(cacheName).then(cache => {
       return cache.addAll(files);
     })
+  );
+});
+
+// Delete stale caches from previous versions once the new one is active.
+self.addEventListener("activate", event => {
+  event.waitUntil(
+    caches.keys().then(keys => Promise.all(
+      keys.filter(key => key.startsWith("slyce-v") && key !== cacheName)
+          .map(key => caches.delete(key))
+    ))
   );
 });
 
