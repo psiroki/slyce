@@ -1,4 +1,4 @@
-const cacheName = "slyce-v1.0.1";
+const cacheName = "slyce-v1.0.2";
 const files = [
   "/slyce/",
   "/slyce/?source=pwa",
