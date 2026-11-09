@@ -53,15 +53,13 @@
             <button class="load-image-btn" id="cropBtn" disabled>Crop<span class="hidable"> Image</span></button>
 
             <div class="slider-container">
-                <label for="limitSlider">Threshold:</label>
-                <input type="range" id="limitSlider" class="slider" min="0" max="255" value="30">
-                <div class="value-display" id="limitValue">30</div>
+                <label for="limitInput">Threshold:</label>
+                <input type="number" id="limitInput" class="impulse-input" inputmode="numeric" min="0" max="255" step="1" value="30">
             </div>
 
             <div class="slider-container">
-                <label for="marginSlider">Margin Size:</label>
-                <input type="range" id="marginSlider" class="slider" min="0" max="200" value="20">
-                <div class="value-display" id="marginValue">20</div>
+                <label for="marginInput">Margin Size:</label>
+                <input type="number" id="marginInput" class="impulse-input" inputmode="numeric" min="0" max="200" step="1" value="20">
             </div>
         </div>
 
@@ -134,9 +132,8 @@
 
             <div class="quality-control hidden" id="qualityControl">
                 <div class="slider-container">
-                    <label for="qualitySlider">JPEG Quality:</label>
-                    <input type="range" id="qualitySlider" class="slider" min="1" max="100" value="85">
-                    <div class="value-display" id="qualityValue">85%</div>
+                    <label for="qualityInput">JPEG Quality %:</label>
+                    <input type="number" id="qualityInput" class="impulse-input" inputmode="numeric" min="1" max="100" step="1" value="85">
                 </div>
             </div>
 

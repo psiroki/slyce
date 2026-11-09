@@ -3,16 +3,19 @@ import { findMargins } from './algorithm.js';
 import { cropExpand } from './util.js';
 import { ScrollZoom } from './scrollzoom.js';
 import { crc32 } from './crc32.js';
+import { ImpulseSpinner } from './impulse_spinner.js';
+
+// ImpulseSpinner tuning (shared by all spinners)
+const SPINNER_SENSITIVITY = 0.05;  // value change per pixel on slow drags
+const SPINNER_ACCELERATION = 0.1; // extra scaling for fast drags/flicks
 
 class SlyceApp {
     constructor() {
         this.edgeFinder = null;
         this.currentMargins = null;
         this.sourceImage = document.getElementById('sourceImage');
-        this.limitSlider = document.getElementById('limitSlider');
-        this.limitValue = document.getElementById('limitValue');
-        this.marginSlider = document.getElementById('marginSlider');
-        this.marginValue = document.getElementById('marginValue');
+        this.limitInput = document.getElementById('limitInput');
+        this.marginInput = document.getElementById('marginInput');
         this.marginOverlay = document.getElementById('marginOverlay');
         this.cropOverlay = document.getElementById('cropOverlay');
         this.imageContainer = document.getElementById('imageContainer');
@@ -29,8 +32,7 @@ class SlyceApp {
         this.cropCanvas = document.getElementById('cropCanvas');
         this.formatRadios = document.querySelectorAll('input[name="format"]');
         this.qualityControl = document.getElementById('qualityControl');
-        this.qualitySlider = document.getElementById('qualitySlider');
-        this.qualityValue = document.getElementById('qualityValue');
+        this.qualityInput = document.getElementById('qualityInput');
         this.cancelCropBtn = document.getElementById('cancelCropBtn');
         this.copyCropBtn = document.getElementById('copyCropBtn');
         this.downloadBtn = document.getElementById('downloadBtn');
@@ -43,8 +45,9 @@ class SlyceApp {
         
         this.scroller = null;
 
-        // Load saved settings before initializing event listeners
+        // Load saved settings before creating the spinners (they read the input's initial value)
         this.loadSettings();
+        this.initializeSpinners();
         this.initializeEventListeners();
         this.resetScroller();
         this.loadAndProcessImage();
@@ -58,14 +61,12 @@ class SlyceApp {
                 
                 // Apply threshold setting
                 if (settings.threshold !== undefined) {
-                    this.limitSlider.value = settings.threshold;
-                    this.limitValue.textContent = settings.threshold;
+                    this.limitInput.value = settings.threshold;
                 }
-                
+
                 // Apply margin size setting
                 if (settings.marginSize !== undefined) {
-                    this.marginSlider.value = settings.marginSize;
-                    this.marginValue.textContent = settings.marginSize;
+                    this.marginInput.value = settings.marginSize;
                 }
                 
                 // Apply export format setting
@@ -78,8 +79,7 @@ class SlyceApp {
                 
                 // Apply JPEG quality setting
                 if (settings.jpegQuality !== undefined) {
-                    this.qualitySlider.value = settings.jpegQuality;
-                    this.qualityValue.textContent = settings.jpegQuality + '%';
+                    this.qualityInput.value = settings.jpegQuality;
                 }
                 
                 // Update format controls visibility based on loaded format
@@ -93,10 +93,10 @@ class SlyceApp {
     saveSettings() {
         try {
             const settings = {
-                threshold: parseInt(this.limitSlider.value),
-                marginSize: parseInt(this.marginSlider.value),
+                threshold: this.limitSpinner.value,
+                marginSize: this.marginSpinner.value,
                 exportFormat: document.querySelector('input[name="format"]:checked').value,
-                jpegQuality: parseInt(this.qualitySlider.value)
+                jpegQuality: this.qualitySpinner.value
             };
             
             localStorage.setItem('slyce', JSON.stringify(settings));
@@ -105,18 +105,34 @@ class SlyceApp {
         }
     }
 
-    initializeEventListeners() {
-        this.limitSlider.addEventListener('input', () => {
-            this.limitValue.textContent = this.limitSlider.value;
+    initializeSpinners() {
+        const onMarginParamChange = () => {
             this.updateMargins();
             this.saveSettings();
+        };
+
+        const spinnerOptions = {
+            sensitivity: SPINNER_SENSITIVITY,
+            acceleration: SPINNER_ACCELERATION
+        };
+
+        this.limitSpinner = new ImpulseSpinner(this.limitInput, {
+            ...spinnerOptions,
+            onValueChange: onMarginParamChange
         });
 
-        this.marginSlider.addEventListener('input', () => {
-            this.marginValue.textContent = this.marginSlider.value;
-            this.updateMargins();
-            this.saveSettings();
+        this.marginSpinner = new ImpulseSpinner(this.marginInput, {
+            ...spinnerOptions,
+            onValueChange: onMarginParamChange
         });
+
+        this.qualitySpinner = new ImpulseSpinner(this.qualityInput, {
+            ...spinnerOptions,
+            onValueChange: () => this.saveSettings()
+        });
+    }
+
+    initializeEventListeners() {
 
         this.sourceImage.addEventListener('load', () => {
             if (this.edgeFinder) {
@@ -154,11 +170,6 @@ class SlyceApp {
                 this.updateFormatControls();
                 this.saveSettings();
             });
-        });
-
-        this.qualitySlider.addEventListener('input', () => {
-            this.qualityValue.textContent = this.qualitySlider.value + '%';
-            this.saveSettings();
         });
 
         this.cancelCropBtn.addEventListener('click', () => {
@@ -227,7 +238,11 @@ class SlyceApp {
         });
 
         // Focus handling for paste (make sure document can receive paste events)
-        document.addEventListener('click', () => {
+        // (but don't steal focus from inputs, otherwise the spinners can't be typed into)
+        document.addEventListener('click', (e) => {
+            if (e.target instanceof Element && e.target.closest('input, textarea, select, label')) {
+                return;
+            }
             document.body.focus();
         });
 
@@ -335,8 +350,8 @@ class SlyceApp {
         if (!this.edgeFinder) return;
 
         try {
-            const limit = parseInt(this.limitSlider.value);
-            const marginSize = parseInt(this.marginSlider.value);
+            const limit = this.limitSpinner.value;
+            const marginSize = this.marginSpinner.value;
             const edgeMaxValues = this.edgeFinder.getEdgeMaxValues();
             const margins = findMargins(edgeMaxValues, limit);
 
@@ -422,7 +437,7 @@ class SlyceApp {
         try {
             this.updateStatus('Generating crop preview...', 'loading');
 
-            const marginSize = parseInt(this.marginSlider.value);
+            const marginSize = this.marginSpinner.value;
             const cropRect = this.currentMargins.clone().grow(marginSize);
 
             // Get the cropped image data
@@ -459,7 +474,7 @@ class SlyceApp {
     async handleCopy() {
         try {
             const selectedFormat = document.querySelector('input[name="format"]:checked').value;
-            const quality = selectedFormat === 'jpeg' ? (this.qualitySlider.value / 100) : undefined;
+            const quality = selectedFormat === 'jpeg' ? (this.qualitySpinner.value / 100) : undefined;
             const mimeType = selectedFormat === 'jpeg' ? 'image/jpeg' : 'image/png';
 
             const getBlob = (type, q) => new Promise(resolve => this.cropCanvas.toBlob(resolve, type, q));
@@ -537,7 +552,7 @@ class SlyceApp {
     async handleDownload() {
         try {
             const selectedFormat = document.querySelector('input[name="format"]:checked').value;
-            const quality = selectedFormat === 'jpeg' ? (this.qualitySlider.value / 100) : undefined;
+            const quality = selectedFormat === 'jpeg' ? (this.qualitySpinner.value / 100) : undefined;
             
             await this.saveImage(this.cropCanvas, selectedFormat, quality);
             this.cropModal.close();
