@@ -101,6 +101,9 @@ body {
     background:
         linear-gradient(to right, transparent var(--progress), rgba(0, 0, 0, 0.6) var(--progress)),
         linear-gradient(90deg, #ff6b6b, #4ecdc4);
+    /* Overflow horizontally under the border (2px = 2 × border-width) so the repeated tile doesn't bleed in */
+    background-size: calc(100% + 2px) 100%;
+    background-position: center;
     box-shadow: 0 0 10px rgba(255, 107, 107, 0.25);
     touch-action: none;
     user-select: none;
