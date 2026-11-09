@@ -1,4 +1,4 @@
-const cacheName = "slyce-v1.0.2";
+const cacheName = "slyce-v1.0.3";
 const files = [
   "/slyce/",
   "/slyce/?source=pwa",
@@ -8,6 +8,7 @@ const files = [
   "/slyce/favicon.ico",
   "/slyce/icon-192.png",
   "/slyce/icon-512.png",
+  "/slyce/impulse_spinner.js",
   "/slyce/index.html",
   "/slyce/manifest.json",
   "/slyce/math.js",

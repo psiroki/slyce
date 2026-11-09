@@ -80,45 +80,56 @@ body {
     min-width: 96px;
 }
 
-.slider {
+/* ImpulseSpinner: drag/flick horizontally or tap to type */
+.impulse-input {
+    --progress: 0%;
     flex: 1;
-    height: 6px;
-    background: linear-gradient(90deg, #333, #666);
-    border-radius: 3px;
-    outline: none;
-    -webkit-appearance: none;
-    appearance: none;
-}
-
-.slider::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 20px;
-    height: 20px;
-    background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
-    border-radius: 50%;
-    cursor: pointer;
-    box-shadow: 0 0 10px rgba(255, 107, 107, 0.5);
-}
-
-.slider::-moz-range-thumb {
-    width: 20px;
-    height: 20px;
-    background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
-    border-radius: 50%;
-    cursor: pointer;
-    border: none;
-    box-shadow: 0 0 10px rgba(255, 107, 107, 0.5);
-}
-
-.value-display {
-    background: rgba(0, 0, 0, 0.5);
-    padding: 5px 15px;
-    border-radius: 20px;
+    min-width: 0;
+    box-sizing: border-box;
+    height: 30px;
+    padding: 0 12px;
+    margin: 0;
+    font-family: inherit;
+    font-size: 16px; /* >= 16px prevents iOS from zooming in on focus */
     font-weight: bold;
-    min-width: 28px;
+    color: #fff;
     text-align: center;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
     border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 20px;
+    /* Dark track covering everything right of --progress, over the full-width theme gradient */
+    background:
+        linear-gradient(to right, transparent var(--progress), rgba(0, 0, 0, 0.6) var(--progress)),
+        linear-gradient(90deg, #ff6b6b, #4ecdc4);
+    box-shadow: 0 0 10px rgba(255, 107, 107, 0.25);
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    cursor: ew-resize;
+    outline: none;
+    will-change: transform;
+    transition: box-shadow 0.2s ease, border-color 0.2s ease;
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+
+.impulse-input:hover {
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
+.impulse-input:focus {
+    /* iOS Safari won't accept typing into an input with user-select: none */
+    user-select: text;
+    -webkit-user-select: text;
+    cursor: text;
+    border-color: #4ecdc4;
+    box-shadow: 0 0 12px rgba(78, 205, 196, 0.6);
+}
+
+.impulse-input::-webkit-outer-spin-button,
+.impulse-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
 }
 
 .scroll-container > * {
@@ -425,9 +436,8 @@ body {
         margin-bottom: 6px;
     }
     
-    .value-display {
-        padding: 3px 10px;
-        min-width: 20px;
+    .impulse-input {
+        height: 28px;
     }
     
     .load-image-btn {
